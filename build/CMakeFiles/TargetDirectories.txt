@@ -1,0 +1,4 @@
+/home/original/STComm/build/CMakeFiles/osn.dir
+/home/original/STComm/build/CMakeFiles/test_osn.dir
+/home/original/STComm/build/CMakeFiles/edit_cache.dir
+/home/original/STComm/build/CMakeFiles/rebuild_cache.dir
