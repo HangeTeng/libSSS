@@ -64,8 +64,7 @@ Add the dependency paths to /etc/ld.so.conf and update the cache.
 
 ```shell
 PATH_TO_PROJECT=`pwd`
-echo "$PATH_TO_PROJECT/libOTe/cryptoTools/thirdparty/unix/lib" >> /etc/ld.so.conf.d/libSSS.conf
-echo "$PATH_TO_PROJECT/libOTe/out/install/linux/lib" >> /etc/ld.so.conf.d/libSSS.conf
+echo -e "$PATH_TO_PROJECT/libOTe/cryptoTools/thirdparty/unix/lib\n$PATH_TO_PROJECT/libOTe/out/install/linux/lib" > /etc/ld.so.conf.d/libSSS.conf
 ldconfig
 ```
 If you change the install dir, do not forget to modify relevant install paths.
