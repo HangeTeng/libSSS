@@ -20,7 +20,7 @@ endif ()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(GMP REQUIRED)
-find_package(pybind11 REQUIRED)
+
 set(MY_LIBS libOTe cryptoTools relic gmp gmpxx)
 
 include_directories(libOTe/out/install/linux/include)
@@ -30,10 +30,11 @@ include_directories(${BOOST_INCLUDEDIR})
 link_directories(libOTe/cryptoTools/thirdparty/${OS}/lib)
 link_directories(libOTe/out/install/linux/lib)
 
+
 include_directories(osn)
 include_directories(common)
 
-add_library(osn SHARED 
+add_library(osn SHARED
         osn/benes.cpp
         osn/benes.h
         osn/OSNReceiver.cpp
@@ -44,11 +45,7 @@ add_library(osn SHARED
         osn/op.h
         )
 
-# 创建Python扩展模块
-pybind11_add_module(SSS python/libSS_wrapper.cpp osn)
-
-target_link_libraries(SSS PRIVATE  ${MY_LIBS} ${Boost_LIBRARIES} osn)
-
+target_link_libraries(osn ${MY_LIBS} ${Boost_LIBRARIES})
 add_executable(test_osn
         test/test_osn.cpp)
 target_link_libraries(test_osn osn ${MY_LIBS} ${Boost_LIBRARIES})

@@ -29,8 +29,13 @@ void OSNReceiver::rand_ot_send(std::vector<std::array<osuCrypto::block, 2>> &sen
 		osuCrypto::BitVector baseChoice(128);
 		baseChoice.randomize(prng1);
 		osuCrypto::IknpOtExtSender sender;
+
+		print_intermediate_value("pass", "Receive test thread 1");
+
 		baseOTs.receive(baseChoice, baseRecv, prng1, chls[tid], 1);
 		sender.setBaseOts(baseRecv, baseChoice);
+
+		print_intermediate_value("pass", "Receive test thread 2");
 
 		std::vector<std::array<osuCrypto::block, 2>> tmpMsg(size);
 		sender.send(tmpMsg, prng1, chls[tid]);
@@ -93,6 +98,7 @@ void OSNReceiver::silent_ot_send(std::vector<std::array<osuCrypto::block, 2>> &s
 
 std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, std::vector<oc::Channel> &chls)
 {
+	
 	int N = int(ceil(log2(values)));
 
 	int levels = 2 * N - 1;
@@ -100,6 +106,8 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 	block temp;
 	std::vector<block> masks(values);
 	std::vector<std::vector<block>> ret_masks(values);
+
+	print_intermediate_value("pass", "Receive test1.1");
 
 	osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235));
 
@@ -130,7 +138,9 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 	// }
 	// cout << IoStream::unlock;
 
+	
 	std::vector<std::array<std::array<osuCrypto::block, 2>, 2>> ot_messages(switches);
+	
 	Channel &chl = chls[0];
 	if (ot_type == 0)
 	{
@@ -163,6 +173,8 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 		std::vector<std::array<osuCrypto::block, 2>> tmp_messages(switches);
 		//! 1 out 2 ot
 		//! recver have 2 random and sender chose 1
+
+		print_intermediate_value("pass", "Receive test1.2");
 		rand_ot_send(tmp_messages, chls); // sample random ot blocks
 
 		//! test tmp
@@ -181,6 +193,7 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 		// }
 		// cout << IoStream::unlock;
 
+
 		AES aes(ZeroBlock);
 		for (auto i = 0; i < ot_messages.size(); i++)
 		{
@@ -188,6 +201,8 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 			ot_messages[i][1] = {tmp_messages[i][1], aes.ecbEncBlock(tmp_messages[i][1])};
 		}
 	}
+
+	print_intermediate_value("pass", "Receive test1.3");
 
 	cpus.store(chls.size());
 	std::vector<std::array<osuCrypto::block, 2>> correction_blocks(switches);
@@ -201,7 +216,7 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 	return ret_masks;
 }
 
-OSNReceiver::OSNReceiver(size_t size, int ot_type) : size(size), ot_type(ot_type)
+OSNReceiver::OSNReceiver()
 {
 }
 
@@ -217,13 +232,15 @@ void OSNReceiver::init(size_t size, std::vector<uint64_t> &p, int ot_type,string
 	{
 		this->chls.emplace_back(this->session.addChannel());
 	}
-
 }
 
 std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>> OSNReceiver::run_osn(/*std::vector<oc::block> inputs,*/)
 {
 	int values = size;
+	print_intermediate_value("pass", "Receive test1");
 	std::vector<std::vector<block>> ret_masks = gen_benes_client_osn(values, chls);
+
+	print_intermediate_value("pass", "Receive test2");
 	std::vector<block> output_masks, benes_input;
 	std::vector<std::vector<uint64_t>> inputs_ul(values), output_masks_ul(values);
 
@@ -281,6 +298,30 @@ void OSNReceiver::setTimer(Timer &timer)
 {
 	this->timer = &timer;
 }
+
+template <typename T>
+void OSNReceiver::print_intermediate_vector(T &value, std::string name)
+{
+	if (allow_print_intermediate_value)
+	{
+		std::cout << name << std::endl;
+		for (std::size_t i = 0; i < value.size(); ++i)
+		{
+			std::cout << i << " " << value[i] << std::endl;
+		}
+	}
+}
+
+
+template <typename T>
+void OSNReceiver::print_intermediate_value(T value, std::string name)
+{
+	if (allow_print_intermediate_value)
+	{
+		std::cout << name << "=" << value << std::endl;
+	}
+}
+
 
 void OSNReceiver::prepare_correction(int n, int Val, int lvl_p, int perm_idx, std::vector<oc::block> &src,
 									 std::vector<std::array<std::array<osuCrypto::block, 2>, 2>> &ot_output,

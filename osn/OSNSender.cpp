@@ -22,6 +22,8 @@ std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int
 	std::vector<std::array<osuCrypto::block, 2>> recvCorr(switches.size());
 	Channel &chl = chls[0];
 
+	print_intermediate_value("pass", "Sender test1.1");
+
 	if (ot_type == 0)
 	{
 		std::vector<osuCrypto::block> tmpMsg(switches.size());
@@ -38,9 +40,17 @@ std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int
 	}
 	else
 	{
-		
+
 		std::vector<osuCrypto::block> tmpMsg(switches.size());
+
+		print_intermediate_value("pass", "Sender test1.2");
+
+		print_intermediate_vector(chls, "chls");
+
 		rand_ot_recv(switches, tmpMsg, chls);
+
+		print_intermediate_value("pass", "Sender test1.3");
+
 		AES aes(ZeroBlock);
 		for (auto i = 0; i < recvMsg.size(); i++)
 			recvMsg[i] = {tmpMsg[i], aes.ecbEncBlock(tmpMsg[i])};
@@ -48,29 +58,33 @@ std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int
 	chl.recv(recvCorr.data(), recvCorr.size());
 	block temp_msg[2], temp_corr[2];
 	mpz_t tmp[2];
-	mpz_inits(tmp[0],tmp[1],NULL);
-	
+	mpz_inits(tmp[0], tmp[1], NULL);
+
+	print_intermediate_value("pass", "Sender test1.4");
+
 	for (int i = 0; i < recvMsg.size(); i++)
 	{
 		if (switches[i] == 1)
 		{
 			block2mpz(recvCorr[i][0], tmp[0]);
 			block2mpz(recvMsg[i][0], tmp[1]);
-			mpz_sub(tmp[0],tmp[0],tmp[1]);
-			mpz_mod(tmp[0],tmp[0],p);
+			mpz_sub(tmp[0], tmp[0], tmp[1]);
+			mpz_mod(tmp[0], tmp[0], p);
 			// gmp_printf("============%Zx\n",tmp[0]);
 			temp_msg[0] = mpz2block(tmp[0]);
 			// cout << temp_msg[0] << endl;
 
 			block2mpz(recvCorr[i][1], tmp[0]);
 			block2mpz(recvMsg[i][1], tmp[1]);
-			mpz_sub(tmp[0],tmp[0],tmp[1]);
-			mpz_mod(tmp[0],tmp[0], p);
+			mpz_sub(tmp[0], tmp[0], tmp[1]);
+			mpz_mod(tmp[0], tmp[0], p);
 			temp_msg[1] = mpz2block(tmp[0]);
 
 			recvMsg[i] = {temp_msg[0], temp_msg[1]};
 		}
 	}
+
+	print_intermediate_value("pass", "Sender test1.5");
 
 	return recvMsg;
 }
@@ -81,14 +95,26 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn()
 	int N = int(ceil(log2(values)));
 	int levels = 2 * N - 1;
 
+	print_intermediate_value("pass", "Sender test1");
+
 	std::vector<std::array<osuCrypto::block, 2>> ot_output = gen_benes_server_osn(values, chls);
+
+	print_intermediate_value("pass", "Sender test2");
+
 	std::vector<block> input_vec(values);
 	std::vector<std::vector<uint64_t>> input_vec_ul(values);
 
+	print_intermediate_value("pass", "Sender test3");
+
 	chls[0].recv(input_vec.data(), input_vec.size());
+
+	print_intermediate_value("pass", "Sender test4");
 
 	std::vector<std::vector<std::array<osuCrypto::block, 2>>> matrix_ot_output(
 		levels, std::vector<std::array<osuCrypto::block, 2>>(values));
+
+	print_intermediate_value("pass", "Sender test5");
+
 	int ctr = 0;
 	for (int i = 0; i < levels; ++i)
 	{
@@ -96,7 +122,11 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn()
 			matrix_ot_output[i][j] = ot_output[ctr++];
 	}
 
+	print_intermediate_value("pass", "Sender test6");
+
 	benes.gen_benes_masked_evaluate(N, 0, 0, input_vec, matrix_ot_output);
+
+	print_intermediate_value("pass", "Sender test7");
 
 	for (int i = 0; i < input_vec.size(); ++i)
 	{
@@ -109,6 +139,28 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn()
 void OSNSender::setTimer(Timer &timer)
 {
 	this->timer = &timer;
+}
+
+template <typename T>
+void OSNSender::print_intermediate_vector(T &value, std::string name)
+{
+	if (allow_print_intermediate_value)
+	{
+		std::cout << name << std::endl;
+		for (std::size_t i = 0; i < value.size(); ++i)
+		{
+			std::cout << i << " " << value[i] << std::endl;
+		}
+	}
+}
+
+template <typename T>
+void OSNSender::print_intermediate_value(T value, std::string name)
+{
+	if (allow_print_intermediate_value)
+	{
+		std::cout << name << "=" << value << std::endl;
+	}
 }
 
 void OSNSender::silent_ot_recv(osuCrypto::BitVector &choices,
@@ -158,6 +210,8 @@ void OSNSender::rand_ot_recv(osuCrypto::BitVector &choices,
 	size_t total_len = choices.size();
 	vector<BitVector> tmpChoices(num_threads);
 
+	print_intermediate_value("pass", "Sender test1.2.1");
+
 	auto routine = [&](size_t tid)
 	{
 		size_t start_idx = total_len * tid / num_threads;
@@ -173,8 +227,14 @@ void OSNSender::rand_ot_recv(osuCrypto::BitVector &choices,
 
 		prng0.get((osuCrypto::u8 *)baseSend.data()->data(), sizeof(osuCrypto::block) * 2 * baseSend.size());
 
+		print_intermediate_value("pass", "Sender test thread 1");
+
+		print_intermediate_value(chls[tid], "chls[tid]");
+
 		osuCrypto::DefaultBaseOT baseOTs;
 		baseOTs.send(baseSend, prng0, chls[tid], 1);
+
+		print_intermediate_value("pass", "Sender test thread 2");
 
 		osuCrypto::IknpOtExtReceiver recv;
 		recv.setBaseOts(baseSend);
@@ -184,7 +244,11 @@ void OSNSender::rand_ot_recv(osuCrypto::BitVector &choices,
 
 		recv.receive(tmpChoices[tid], tmpMsg, prng0, chls[tid]);
 		std::copy_n(tmpMsg.begin(), size, recvMsg.begin() + start_idx);
+
+		print_intermediate_value("pass", "Sender test thread 3");
 	};
+
+	print_intermediate_value("pass", "Sender test1.2.3");
 	vector<thread> thrds(num_threads);
 	for (size_t t = 0; t < num_threads; t++)
 		thrds[t] = std::thread(routine, t);
@@ -195,7 +259,7 @@ void OSNSender::rand_ot_recv(osuCrypto::BitVector &choices,
 		choices.append(tmpChoices[t]);
 }
 
-OSNSender::OSNSender(size_t size, int ot_type) : size(size), ot_type(ot_type)
+OSNSender::OSNSender()
 {
 }
 
@@ -206,14 +270,18 @@ void OSNSender::init(size_t size, std::vector<int> &dest, std::vector<uint64_t> 
 	this->dest = dest;
 	mpz_init(this->p);
 	mpz_import(this->p, p.size(), -1, sizeof(uint64_t), 0, 0, p.data());
-	// gmp_printf("%Zd", this->p);
+	print_intermediate_value(this->size, "size");
+	print_intermediate_value(this->ot_type, "ot_type");
+	print_intermediate_vector(this->dest, "dest");
+	if (allow_print_intermediate_value)
+		gmp_printf("p = %Zd\n", this->p);
 
 	this->session.start(this->ios, Sip, EpMode::Server);
+
 	for (size_t i = 0; i < num_threads; i++)
 	{
 		this->chls.emplace_back(this->session.addChannel());
 	}
-
 
 	int values = size;
 	int N = int(ceil(log2(values)));

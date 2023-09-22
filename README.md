@@ -63,6 +63,7 @@ python build.py --install=out/install/linux -- -D ENABLE_RELIC=ON -D ENABLE_NP=O
 Add the dependency paths to /etc/ld.so.conf and update the cache.
 
 ```shell
+# in libSSS dir
 PATH_TO_PROJECT=`pwd`
 echo -e "$PATH_TO_PROJECT/libOTe/cryptoTools/thirdparty/unix/lib\n$PATH_TO_PROJECT/libOTe/out/install/linux/lib" > /etc/ld.so.conf.d/libSSS.conf
 ldconfig
@@ -72,8 +73,9 @@ If you change the install dir, do not forget to modify relevant install paths.
 ## Compile libSSS
 
 ```shell
-mkdir build # in PSU dir
+# in libSSS dir
+mkdir build
 cd build
 cmake ..
 make -j
-```#
+```

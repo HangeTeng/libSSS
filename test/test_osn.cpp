@@ -23,14 +23,14 @@ vector<vector<uint64_t>> receiver_set;
 vector<int> permutation;
 string ip = "127.0.0.1:12345";
 size_t num_threads = 1;
-vector<uint64_t> p_array = {9ul, 67ul};
+vector<uint64_t> p_array = {1ul, 1ul};
 
 void sender(size_t size)
 {
 
 	std::vector<int> dest(size);
 	for (int i = 0; i < dest.size(); ++i)
-		dest[i] = dest.size() - i - 1;
+		dest[i] = i;
 
 	// osuCrypto::PRNG prng(_mm_set_epi32(425323, 334565, 0, 235)); // we need to modify this seed
 
@@ -106,7 +106,7 @@ int check_result(size_t size)
 		mpz_import(a, sender_shares[i].size(), -1, sizeof(uint64_t), 0, 0, sender_shares[i].data());
 		mpz_import(b, receiver_shares[i].size(), -1, sizeof(uint64_t), 0, 0, receiver_shares[i].data());
 		mpz_import(c, receiver_set[permutation[i]].size(), -1, sizeof(uint64_t), 0, 0, receiver_set[permutation[i]].data());
-		// gmp_printf("a = %Zd\nb = %Zd\np = %Zd\nc = %Zd\n", a, b, p, c);
+		gmp_printf("a = %Zd\nb = %Zd\np = %Zd\nc = %Zd\n", a, b, p, c);
 		mpz_add(tmp, a, b);
 		// gmp_printf("tmp = %Zd\n", tmp);
 		mpz_mod(tmp, tmp, p);

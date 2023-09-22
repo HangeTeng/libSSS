@@ -23,6 +23,8 @@ class OSNReceiver
 	Session session;
 	vector<Channel> chls;
 
+	bool allow_print_intermediate_value = false;
+
 	oc::Timer *timer;
 	std::atomic<int> cpus;
 
@@ -34,9 +36,14 @@ class OSNReceiver
 							std::vector<std::array<std::array<osuCrypto::block, 2>, 2>> &ot_output,
 							std::vector<std::array<osuCrypto::block, 2>> &correction_blocks);
 
+	template <typename T>
+	void print_intermediate_vector(T &value, std::string name);
+	template <typename T>
+	void print_intermediate_value(T value, std::string name);
+
 public:
-	OSNReceiver(size_t size = 0, int ot_type = 0);
-	void init(size_t size, std::vector<uint64_t> &p, int ot_type = 0, string Sip = "127.0.0.1:12345", size_t num_threads = 1);
+	OSNReceiver();
+	void init(size_t size, std::vector<uint64_t> &p, int ot_type = 1, string Sip = "127.0.0.1:12345", size_t num_threads = 1);
 	std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>> run_osn();
 	void setTimer(oc::Timer &timer);
 };
