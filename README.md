@@ -1,5 +1,7 @@
 # libSSS
 
+This code is implemented with reference to the work done by dujiajun in the PSU repository [https://github.com/dujiajun/PSU].
+
 ## Tested Environment
 
 This code and following instruction is construct on Ubuntu 20.04, with g++ 9.4 and CMake 3.24.

@@ -4,8 +4,8 @@ import SSS
 import multiprocessing
 
 
-size = 2 
-p = [1, 1]
+size = 6000
+p = [0,1]
 num_threads = 1
 Sip = "127.0.0.1:12222"
 dest=range(size)
@@ -26,7 +26,6 @@ if __name__ == "__main__":
     result_queue_recv = multiprocessing.Queue()
     result_queue_send = multiprocessing.Queue()
     
-
     receiver_proc = multiprocessing.Process(target=receiver_process, args=(result_queue_recv,))
     sender_proc = multiprocessing.Process(target=sender_process, args=(result_queue_send,))
     
@@ -43,12 +42,12 @@ if __name__ == "__main__":
     print("Receiver result:", recv)
     
     for i in range(size):
-        print((send[i][0]+recv[1][i][0])% ((1<<64)+1))
+        print((p[1]<<64)+p[0])
+        print((send[i][0]+recv[1][i][0])% ((p[1]<<64)+p[0]))
         print(send[i][0])
-        print(recv[0][i][0])
-        print((1<<64)+1)
         print(recv[1][i][0])
-        if((send[i][0]+recv[1][i][0])% ((1<<64)+1) != recv[0][i][0]):
+        print(recv[0][i][0])
+        if((send[i][0]+recv[1][i][0])% ((p[1]<<64)+p[0]) != recv[0][i][0]):
             print("error")
             break
         print("correct")

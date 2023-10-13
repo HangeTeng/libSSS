@@ -106,7 +106,7 @@ int check_result(size_t size)
 		mpz_import(a, sender_shares[i].size(), -1, sizeof(uint64_t), 0, 0, sender_shares[i].data());
 		mpz_import(b, receiver_shares[i].size(), -1, sizeof(uint64_t), 0, 0, receiver_shares[i].data());
 		mpz_import(c, receiver_set[permutation[i]].size(), -1, sizeof(uint64_t), 0, 0, receiver_set[permutation[i]].data());
-		gmp_printf("a = %Zd\nb = %Zd\np = %Zd\nc = %Zd\n", a, b, p, c);
+		// gmp_printf("a = %Zd\nb = %Zd\np = %Zd\nc = %Zd\n", a, b, p, c);
 		mpz_add(tmp, a, b);
 		// gmp_printf("tmp = %Zd\n", tmp);
 		mpz_mod(tmp, tmp, p);

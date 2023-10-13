@@ -3,7 +3,7 @@ sys.path.append(r'../build/')
 import SSS
 
 size = 2 
-p = [1, 1]
+p = [1, 0]
 num_threads=1
 Sip="127.0.0.1:12222"
 
