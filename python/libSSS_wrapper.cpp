@@ -1,8 +1,8 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include "../osn/OSNReceiver.h" // Update the path to the actual OSNReceiver header file
-#include "../osn/OSNSender.h"   // Update the path to the actual OSNSender header file
+#include "../osn/OSNReceiver.h"
+#include "../osn/OSNSender.h"
 
 namespace py = pybind11;
 

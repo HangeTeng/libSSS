@@ -79,3 +79,11 @@ cd build
 cmake ..
 make -j
 ```
+
+## Use in python
+In the 'build' directory, you'll find an 'SSS.cpython(omitted).so' file. You can access the Python library 'SSS' by simply using 'sys.path.append' and 'import'. Here's an example of how to do it, and you can find the test code in the 'python' folder.
+
+```python
+sys.path.append(r'../build/')
+import SSS
+```

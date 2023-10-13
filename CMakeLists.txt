@@ -45,7 +45,7 @@ add_library(osn SHARED
         )
 
 # 创建Python扩展模块
-pybind11_add_module(SSS python/libSS_wrapper.cpp osn)
+pybind11_add_module(SSS python/libSSS_wrapper.cpp osn)
 
 target_link_libraries(SSS PRIVATE  ${MY_LIBS} ${Boost_LIBRARIES} osn)
 
