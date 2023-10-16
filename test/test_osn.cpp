@@ -22,10 +22,9 @@ vector<vector<uint64_t>> receiver_shares;
 vector<vector<uint64_t>> receiver_set;
 vector<int> permutation;
 string ip = "127.0.0.1:12345";
-size_t num_threads = 1;
 vector<uint64_t> p_array = {1ul, 1ul};
 
-void sender(size_t size)
+void sender(size_t size, size_t num_threads)
 {
 
 	std::vector<int> dest(size);
@@ -49,9 +48,9 @@ void sender(size_t size)
 	sender_shares = osn.run_osn();
 	timer.setTimePoint("after run_osn");
 	permutation = osn.dest;
-	// cout << IoStream::lock;
-	// cout << "Sender:" << endl;
-	// cout << timer << endl;
+	cout << IoStream::lock;
+	cout << "Sender:" << endl;
+	cout << timer << endl;
 	// size_t sent = 0, recv = 0;
 	// for (auto &chl : osn.chls)
 	// {
@@ -60,10 +59,10 @@ void sender(size_t size)
 	// }
 	// cout << "recv: " << recv / 1024.0 / 1024.0 << "MB sent:" << sent / 1024.0 / 1024.0 << "MB "
 	// 	 << "total: " << (recv + sent) / 1024.0 / 1024.0 << "MB" << endl;
-	// cout << IoStream::unlock;
+	cout << IoStream::unlock;
 }
 
-void receiver(size_t size)
+void receiver(size_t size,size_t num_threads)
 {
 
 	OSNReceiver osn;
@@ -76,9 +75,9 @@ void receiver(size_t size)
 	receiver_set = result.first;
 	receiver_shares = result.second;
 	timer.setTimePoint("after run_osn");
-	// cout << IoStream::lock;
-	// cout << "Receiver:" << endl;
-	// cout << timer << endl;
+	cout << IoStream::lock;
+	cout << "Receiver:" << endl;
+	cout << timer << endl;
 	// size_t sent = 0, recv = 0;
 	// for (auto &chl : osn.chls)
 	// {
@@ -87,7 +86,7 @@ void receiver(size_t size)
 	// }
 	// cout << "recv: " << recv / 1024.0 / 1024.0 << "MB sent:" << sent / 1024.0 / 1024.0 << "MB "
 	// 	 << "total: " << (recv + sent) / 1024.0 / 1024.0 << "MB" << endl;
-	// cout << IoStream::unlock;
+	cout << IoStream::unlock;
 }
 
 int check_result(size_t size)
@@ -122,11 +121,11 @@ int check_result(size_t size)
 int main(int argc, char **argv)
 {
 	size_t size = 1 << atoi(argv[1]);
-	num_threads = atoi(argv[2]);
+	size_t num_threads = atoi(argv[2]);
 	cout << "size:" << size << " num_threads:" << num_threads << endl;
 
-	auto sender_thrd = thread(sender, size);
-	auto receiver_thrd = thread(receiver, size);
+	auto sender_thrd = thread(sender, size, num_threads);
+	auto receiver_thrd = thread(receiver, size, num_threads);
 	sender_thrd.join();
 	receiver_thrd.join();
 	if (size == check_result(size))

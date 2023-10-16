@@ -2,25 +2,30 @@ import sys
 sys.path.append(r'../build/')
 import SSS
 import multiprocessing
+from pySSSComm import Sender,Receiver
 
 
-size = 6000
-p = [0,1]
+size = 60000
+p = [0,0,1]
 num_threads = 1
 Sip = "127.0.0.1:12222"
 dest=range(size)
+element_size = 2
 
 def receiver_process(result_queue):
-    receiver = SSS.OSNReceiver()
+    receiver = Receiver()
     receiver.init(size=size, p=p, Sip=Sip, ot_type=1, num_threads=num_threads)
-    a = receiver.run_osn()
+    a = receiver.run()
+    print("receiver run!")
     result_queue.put(a)
 
 def sender_process(result_queue):
-    sender = SSS.OSNSender()
+    sender = Sender()
     sender.init(size=size, dest=dest, p=p, Sip=Sip, ot_type=1, num_threads=num_threads)
-    a = sender.run_osn()
+    a = sender.run()
+    print("sender run!")
     result_queue.put(a)
+
 
 if __name__ == "__main__":
     result_queue_recv = multiprocessing.Queue()
@@ -35,35 +40,16 @@ if __name__ == "__main__":
     receiver_proc.join()
     sender_proc.join()
 
+    print("send get")
     send = result_queue_send.get()
+    print("recv get")
     recv = result_queue_recv.get()
-
-    print("send result:", send)
-    print("Receiver result:", recv)
     
+    print("checking")
     for i in range(size):
-        print((p[1]<<64)+p[0])
-        print((send[i][0]+recv[1][i][0])% ((p[1]<<64)+p[0]))
-        print(send[i][0])
-        print(recv[1][i][0])
-        print(recv[0][i][0])
-        if((send[i][0]+recv[1][i][0])% ((p[1]<<64)+p[0]) != recv[0][i][0]):
-            print("error")
+        print(send[i]+recv[1][i])
+        if((send[i]+recv[1][i])% (((p[2] if len(p)==3 else 0)<< 128)+(p[1]<<64)+p[0]) != recv[0][i]):
+            print("error!")
             break
-        print("correct")
-
-
-# 线程资源会阻塞
-# import threading
-
-# if __name__ == "__main__":
-#     receiver_thread = threading.Thread(target=receiver_process)
-#     sender_thread = threading.Thread(target=sender_process)
-    
-#     print(1)
-#     receiver_thread.start()
-#     print(2)
-#     sender_thread.start()
-    
-#     receiver_thread.join()
-#     sender_thread.join()
+    if i == size-1:
+        print("correct!")

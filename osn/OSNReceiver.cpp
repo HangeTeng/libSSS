@@ -106,7 +106,9 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 	block temp;
 	std::vector<block> masks(values);
 	std::vector<std::vector<block>> ret_masks(values);
-
+	Timer timer;
+	timer.setTimePoint("start");
+	timer.setTimePoint("begin gen_benes_client_osn");
 	print_intermediate_value("pass", "Receive test1.1");
 
 	osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235));
@@ -115,32 +117,15 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 	{ // we sample the input masks randomly
 		temp = prng.get<block>();
 		temp = temp;
-		// temp = oc::block(0, (j + 3) << (16 * 1 + 4));
 		masks[j] = temp;
 		ret_masks[j].push_back(temp);
 	}
 
-	// //! test print
-	// cout << IoStream::lock;
-	// cout << "osnrecv get masks: " << endl;
-	// for (int i = 0; i < values; ++i)
-	// {
-	// 	cout << i << " " << masks[i] << endl;
-	// }
-	// cout << IoStream::unlock;
 
-	// //! test_print
-	// cout << IoStream::lock;
-	// cout << "osnrecv get ret_masks: " << endl;
-	// for (int i = 0; i < values; ++i)
-	// {
-	// 	cout << i << " " << ret_masks[i][0] << endl;
-	// }
-	// cout << IoStream::unlock;
-
-	
 	std::vector<std::array<std::array<osuCrypto::block, 2>, 2>> ot_messages(switches);
-	
+	timer.setTimePoint("after init");
+
+
 	Channel &chl = chls[0];
 	if (ot_type == 0)
 	{
@@ -171,28 +156,14 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 	else
 	{
 		std::vector<std::array<osuCrypto::block, 2>> tmp_messages(switches);
-		//! 1 out 2 ot
-		//! recver have 2 random and sender chose 1
 
-		print_intermediate_value("pass", "Receive test1.2");
 		rand_ot_send(tmp_messages, chls); // sample random ot blocks
 
-		//! test tmp
 		for (size_t i = 0; i < tmp_messages.size(); ++i)
 		{
 			tmp_messages[i][0] = tmp_messages[i][0];
 			tmp_messages[i][1] = tmp_messages[i][1];
 		}
-
-		// //! test print
-		// cout << IoStream::lock;
-		// cout << "recver tmp_messages: " << endl;
-		// for (size_t i = 0; i < tmp_messages.size(); ++i)
-		// {
-		// 	cout << i << " " << tmp_messages[i][0] << " " << tmp_messages[i][1] << endl;
-		// }
-		// cout << IoStream::unlock;
-
 
 		AES aes(ZeroBlock);
 		for (auto i = 0; i < ot_messages.size(); i++)
@@ -202,17 +173,27 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 		}
 	}
 
+	timer.setTimePoint("after ot");
+
 	print_intermediate_value("pass", "Receive test1.3");
 
 	cpus.store(chls.size());
 	std::vector<std::array<osuCrypto::block, 2>> correction_blocks(switches);
 	prepare_correction(N, values, 0, 0, masks, ot_messages, correction_blocks);
 
+	timer.setTimePoint("after prepare_correction");
+
 	chl.send(correction_blocks);
+	timer.setTimePoint("after comm");
 	for (int i = 0; i < values; ++i)
 	{
 		ret_masks[i].push_back(masks[i]);
 	}
+	timer.setTimePoint("after push_back");
+	cout << IoStream::lock;
+	cout << "Recver: run osn" << endl;
+	cout << timer << endl;
+	cout << IoStream::unlock;
 	return ret_masks;
 }
 
@@ -237,9 +218,12 @@ void OSNReceiver::init(size_t size, std::vector<uint64_t> &p, int ot_type,string
 std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>> OSNReceiver::run_osn(/*std::vector<oc::block> inputs,*/)
 {
 	int values = size;
+	Timer timer;
+	timer.setTimePoint("start");
+	timer.setTimePoint("begin run_osn");
 	print_intermediate_value("pass", "Receive test1");
 	std::vector<std::vector<block>> ret_masks = gen_benes_client_osn(values, chls);
-
+	timer.setTimePoint("after gen_benes_client_osn");
 	print_intermediate_value("pass", "Receive test2");
 	std::vector<block> output_masks, benes_input;
 	std::vector<std::vector<uint64_t>> inputs_ul(values), output_masks_ul(values);
@@ -250,6 +234,7 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 	osuCrypto::PRNG prng(_mm_set_epi32(4253233465, 334565, 0, 235)); // we need to modify this seed
 
 	std::vector<oc::block> inputs(values); //! set a random input, could be a receiver data input
+	timer.setTimePoint("after inputs alloc");
 	for (int i = 0; i < inputs.size(); ++i)
 	{
 		
@@ -257,13 +242,7 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 		block2mpz(inputs[i], tmp[0]);
 		mpz_mod(tmp[0], tmp[0], p);
 		inputs[i] = mpz2block(tmp[0]);
-		// inputs[i] = oc::toBlock((i+1));
-		// inputs[i] = oc::block(0,i<<4);
-		// inputs[i] = oc::block(0, prng.get<uint64_t>());
 	}
-
-	
-	
 
 	for (int i = 0; i < values; ++i)
 	{
@@ -275,8 +254,9 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 	}
 	for (int i = 0; i < values; ++i)
 		benes_input.push_back(ret_masks[i][0]);
-
+	timer.setTimePoint("after inputs processing");
 	chls[0].send(benes_input); //! recver comumincate and send
+	timer.setTimePoint("after comm");
 	for (int i = 0; i < values; ++i)
 		output_masks.push_back(ret_masks[i][1]);
 
@@ -290,7 +270,11 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 		for (uint64_t x : output_masks[i].as<uint64_t>())
 			output_masks_ul[i].push_back(x);
 	}
-
+	timer.setTimePoint("after pushback");
+	cout << IoStream::lock;
+	cout << "Recver: run osn" << endl;
+	cout << timer << endl;
+	cout << IoStream::unlock;
 	return std::make_pair(inputs_ul, output_masks_ul);
 }
 
