@@ -96,9 +96,12 @@ void OSNReceiver::silent_ot_send(std::vector<std::array<osuCrypto::block, 2>> &s
 	sender.silentSend(sendMsg, prng1, chls[0]);*/
 }
 
-std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, std::vector<oc::Channel> &chls)
+std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values,
+																  std::vector<oc::Channel> &chls,
+																  mpz_t p,
+																  int ot_type)
 {
-	
+
 	int N = int(ceil(log2(values)));
 
 	int levels = 2 * N - 1;
@@ -121,10 +124,8 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 		ret_masks[j].push_back(temp);
 	}
 
-
 	std::vector<std::array<std::array<osuCrypto::block, 2>, 2>> ot_messages(switches);
 	timer.setTimePoint("after init");
-
 
 	Channel &chl = chls[0];
 	if (ot_type == 0)
@@ -179,7 +180,7 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 
 	cpus.store(chls.size());
 	std::vector<std::array<osuCrypto::block, 2>> correction_blocks(switches);
-	prepare_correction(N, values, 0, 0, masks, ot_messages, correction_blocks);
+	prepare_correction(N, values, 0, 0,p, masks, ot_messages, correction_blocks);
 
 	timer.setTimePoint("after prepare_correction");
 
@@ -190,39 +191,68 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values, st
 		ret_masks[i].push_back(masks[i]);
 	}
 	timer.setTimePoint("after push_back");
-	cout << IoStream::lock;
-	cout << "Recver: run osn" << endl;
-	cout << timer << endl;
-	cout << IoStream::unlock;
+	// cout << IoStream::lock;
+	// cout << "Recver: gen_benes_client_osn" << endl;
+	// cout << timer << endl;
+	// cout << IoStream::unlock;
 	return ret_masks;
 }
 
-OSNReceiver::OSNReceiver()
+OSNReceiver::OSNReceiver(size_t ios_threads) : ios(ios_threads)
 {
+	ios.showErrorMessages(false);
+	this->totalDataSent = 0;
+	this->totalDataRecv = 0;
 }
 
-void OSNReceiver::init(size_t size, std::vector<uint64_t> &p, int ot_type,string Sip, size_t num_threads)
+// void OSNReceiver::init(size_t size, std::vector<uint64_t> &p, int ot_type, string Sip, string sessionHint, size_t num_threads)
+// {
+// 	this->size = size;
+// 	this->ot_type = ot_type;
+// 	mpz_init(this->p);
+// 	mpz_import(this->p, p.size(), -1, sizeof(uint64_t), 0, 0, p.data());
+
+// 	if (sessionHint == "")
+// 		this->session.start(this->ios, Sip, EpMode::Client);
+// 	else
+// 		this->session.start(this->ios, Sip, EpMode::Client, sessionHint);
+
+// 	for (size_t i = 0; i < num_threads; i++)
+// 	{
+// 		this->chls.emplace_back(this->session.addChannel());
+// 	}
+// }
+
+std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>>
+OSNReceiver::run_osn(size_t size,
+					 std::vector<uint64_t> &p_array,
+					 int ot_type, string Sip,
+					 string sessionHint,
+					 size_t num_threads
+					 /*std::vector<oc::block> inputs,*/)
 {
-	this->size = size;
-	this->ot_type = ot_type;
-	mpz_init(this->p);
-	mpz_import(this->p, p.size(), -1, sizeof(uint64_t), 0, 0, p.data());
-	
-	this->session.start(this->ios, Sip, EpMode::Client);
+	mpz_t p;
+	mpz_init(p);
+	mpz_import(p, p_array.size(), -1, sizeof(uint64_t), 0, 0, p_array.data());
+
+	Session session;
+	if (sessionHint == "")
+		session.start(this->ios, Sip, EpMode::Client);
+	else
+		session.start(this->ios, Sip, EpMode::Client, sessionHint);
+
+	vector<Channel> chls;
 	for (size_t i = 0; i < num_threads; i++)
 	{
-		this->chls.emplace_back(this->session.addChannel());
+		chls.emplace_back(session.addChannel());
 	}
-}
 
-std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>> OSNReceiver::run_osn(/*std::vector<oc::block> inputs,*/)
-{
 	int values = size;
 	Timer timer;
 	timer.setTimePoint("start");
 	timer.setTimePoint("begin run_osn");
 	print_intermediate_value("pass", "Receive test1");
-	std::vector<std::vector<block>> ret_masks = gen_benes_client_osn(values, chls);
+	std::vector<std::vector<block>> ret_masks = gen_benes_client_osn(values, chls, p, ot_type);
 	timer.setTimePoint("after gen_benes_client_osn");
 	print_intermediate_value("pass", "Receive test2");
 	std::vector<block> output_masks, benes_input;
@@ -237,12 +267,22 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 	timer.setTimePoint("after inputs alloc");
 	for (int i = 0; i < inputs.size(); ++i)
 	{
-		
+
 		inputs[i] = prng.get<oc::block>();
+		// cout << IoStream::lock;
+		// cout << "recv::inputs" << inputs[0] << endl; //! test
+		// cout << IoStream::unlock;
 		block2mpz(inputs[i], tmp[0]);
 		mpz_mod(tmp[0], tmp[0], p);
 		inputs[i] = mpz2block(tmp[0]);
 	}
+	// cout << IoStream::lock;
+	// cout << "recv::inputs" << inputs[0] << endl; //! test
+	// cout << IoStream::unlock;
+
+	// cout << IoStream::lock;
+	// cout << "recv::ret_masks" << ret_masks[0][0] << endl; //! test
+	// cout << IoStream::unlock;
 
 	for (int i = 0; i < values; ++i)
 	{
@@ -252,10 +292,20 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 		mpz_mod(tmp[0], tmp[0], p);
 		ret_masks[i][0] = mpz2block(tmp[0]);
 	}
+
+	// cout << IoStream::lock;
+	// cout << "recv::ret_masks" << ret_masks[0][0] << endl; //! test
+	// cout << IoStream::unlock;
+
 	for (int i = 0; i < values; ++i)
 		benes_input.push_back(ret_masks[i][0]);
 	timer.setTimePoint("after inputs processing");
 	chls[0].send(benes_input); //! recver comumincate and send
+
+	// cout << IoStream::lock;
+	// cout << "recv::benes_input" << benes_input[1] << benes_input[2] << endl; //! test
+	// cout << IoStream::unlock;
+
 	timer.setTimePoint("after comm");
 	for (int i = 0; i < values; ++i)
 		output_masks.push_back(ret_masks[i][1]);
@@ -271,12 +321,28 @@ std::pair<std::vector<std::vector<uint64_t>>, std::vector<std::vector<uint64_t>>
 			output_masks_ul[i].push_back(x);
 	}
 	timer.setTimePoint("after pushback");
-	cout << IoStream::lock;
-	cout << "Recver: run osn" << endl;
-	cout << timer << endl;
-	cout << IoStream::unlock;
+	// cout << IoStream::lock;
+	// cout << "Recver: run osn" << endl;
+	// cout << timer << endl;
+	// cout << IoStream::unlock;
+
+	for (auto &chl : chls)
+	{
+		this->totalDataSent += chl.getTotalDataSent();
+		this->totalDataRecv += chl.getTotalDataRecv();
+	}
+
 	return std::make_pair(inputs_ul, output_masks_ul);
 }
+
+size_t OSNReceiver::getTotalDataSent(){
+	return this->totalDataSent;
+}
+
+size_t OSNReceiver::getTotalDataRecv(){
+	return this->totalDataRecv;
+}
+
 
 void OSNReceiver::setTimer(Timer &timer)
 {
@@ -296,7 +362,6 @@ void OSNReceiver::print_intermediate_vector(T &value, std::string name)
 	}
 }
 
-
 template <typename T>
 void OSNReceiver::print_intermediate_value(T value, std::string name)
 {
@@ -306,8 +371,12 @@ void OSNReceiver::print_intermediate_value(T value, std::string name)
 	}
 }
 
-
-void OSNReceiver::prepare_correction(int n, int Val, int lvl_p, int perm_idx, std::vector<oc::block> &src,
+void OSNReceiver::prepare_correction(int n,
+									 int Val,
+									 int lvl_p,
+									 int perm_idx,
+									 mpz_t p,
+									 std::vector<oc::block> &src,
 									 std::vector<std::array<std::array<osuCrypto::block, 2>, 2>> &ot_output,
 									 std::vector<std::array<osuCrypto::block, 2>> &correction_blocks)
 {
@@ -650,19 +719,19 @@ void OSNReceiver::prepare_correction(int n, int Val, int lvl_p, int perm_idx, st
 	thread top_thrd, btm_thrd;
 	if (cpus > 0)
 	{
-		top_thrd = thread(&OSNReceiver::prepare_correction, this, n - 1, Val, lvl_p + 1, perm_idx + values / 4, std::ref(top1), std::ref(ot_output), std::ref(correction_blocks));
+		top_thrd = thread(&OSNReceiver::prepare_correction, this, n - 1, Val, lvl_p + 1, perm_idx + values / 4, p, std::ref(top1), std::ref(ot_output), std::ref(correction_blocks));
 	}
 	else
 	{
-		prepare_correction(n - 1, Val, lvl_p + 1, perm_idx + values / 4, top1, ot_output, correction_blocks);
+		prepare_correction(n - 1, Val, lvl_p + 1, perm_idx + values / 4,p, top1, ot_output, correction_blocks);
 	}
 	if (cpus > 0)
 	{
-		btm_thrd = thread(&OSNReceiver::prepare_correction, this, n - 1, Val, lvl_p + 1, perm_idx, std::ref(bottom1), std::ref(ot_output), std::ref(correction_blocks));
+		btm_thrd = thread(&OSNReceiver::prepare_correction, this, n - 1, Val, lvl_p + 1, perm_idx,p, std::ref(bottom1), std::ref(ot_output), std::ref(correction_blocks));
 	}
 	else
 	{
-		prepare_correction(n - 1, Val, lvl_p + 1, perm_idx, bottom1, ot_output, correction_blocks);
+		prepare_correction(n - 1, Val, lvl_p + 1, perm_idx,p, bottom1, ot_output, correction_blocks);
 	}
 	if (top_thrd.joinable())
 		top_thrd.join();

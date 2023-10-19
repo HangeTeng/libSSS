@@ -10,12 +10,16 @@
 #include <gmp.h>
 #include <iostream>
 #include "cryptoTools/Network/IOService.h"
+
 #include <string>
 
 using namespace std;
 using namespace osuCrypto;
 
-std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int values, std::vector<oc::Channel> &chls)
+std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int values,
+																			 std::vector<oc::Channel> &chls,
+																			 mpz_t p,
+																			 int ot_type)
 {
 	osuCrypto::BitVector switches = benes.return_gen_benes_switches(values);
 	std::vector<std::array<osuCrypto::block, 2>> recvMsg(switches.size());
@@ -89,17 +93,56 @@ std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int
 	return recvMsg;
 }
 
-std::vector<std::vector<uint64_t>> OSNSender::run_osn()
+std::vector<std::vector<uint64_t>> OSNSender::run_osn(size_t size,
+													  std::vector<int> &dest,
+													  std::vector<uint64_t> &p_array,
+													  int ot_type,
+													  string Sip,
+													  string sessionHint,
+													  size_t num_threads)
 {
+	mpz_t p;
+	mpz_init(p);
+	mpz_import(p, p_array.size(), -1, sizeof(uint64_t), 0, 0, p_array.data());
+	print_intermediate_value(size, "size");
+	print_intermediate_value(ot_type, "ot_type");
+	print_intermediate_vector(dest, "dest");
+	if (allow_print_intermediate_value)
+		gmp_printf("p = %Zd\n", p);
+
+	print_intermediate_value("pass", "Sender test1");
+
+	Session session;
+	if (sessionHint == "")
+		session.start(this->ios, Sip, EpMode::Server);
+	else
+		session.start(this->ios, Sip, EpMode::Server, sessionHint);
+
+	vector<Channel> chls;
+	for (size_t i = 0; i < num_threads; i++)
+	{
+		chls.emplace_back(session.addChannel());
+	}
+
 	int values = size;
 	int N = int(ceil(log2(values)));
 	int levels = 2 * N - 1;
 
-	print_intermediate_value("pass", "Sender test1");
+	benes.initialize(values, levels, p_array);
 
-	std::vector<std::array<osuCrypto::block, 2>> ot_output = gen_benes_server_osn(values, chls);
+	std::vector<int> src(values);
+	for (int i = 0; i < src.size(); ++i)
+		src[i] = i;
+
+	benes.gen_benes_route(N, 0, 0, src, dest);
 
 	print_intermediate_value("pass", "Sender test2");
+
+	std::vector<std::array<osuCrypto::block, 2>> ot_output = gen_benes_server_osn(values, chls, p, ot_type);
+
+	// cout << IoStream::lock;
+	// cout <<"ot_output:"<< ot_output[0][1]<< ot_output[0][2] <<endl; //! test 
+	// cout << IoStream::unlock;
 
 	std::vector<block> input_vec(values);
 	std::vector<std::vector<uint64_t>> input_vec_ul(values);
@@ -107,6 +150,10 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn()
 	print_intermediate_value("pass", "Sender test3");
 
 	chls[0].recv(input_vec.data(), input_vec.size());
+
+	// cout << IoStream::lock;
+	// cout <<"input:"<<  input_vec[1]<< input_vec[2] <<endl; //! test 
+	// cout << IoStream::unlock;
 
 	print_intermediate_value("pass", "Sender test4");
 
@@ -125,6 +172,7 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn()
 	print_intermediate_value("pass", "Sender test6");
 
 	benes.gen_benes_masked_evaluate(N, 0, 0, input_vec, matrix_ot_output);
+	// cout <<"input:"<<  input_vec[1]<< input_vec[2] <<endl; //! test 
 
 	print_intermediate_value("pass", "Sender test7");
 
@@ -133,7 +181,22 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn()
 		for (uint64_t x : input_vec[i].as<uint64_t>())
 			input_vec_ul[i].push_back(x);
 	}
+
+	for (auto &chl : chls)
+	{
+		this->totalDataSent += chl.getTotalDataSent();
+		this->totalDataRecv += chl.getTotalDataRecv();
+	}
+
 	return input_vec_ul; // share
+}
+
+size_t OSNSender::getTotalDataSent(){
+	return this->totalDataSent;
+}
+
+size_t OSNSender::getTotalDataRecv(){
+	return this->totalDataRecv;
 }
 
 void OSNSender::setTimer(Timer &timer)
@@ -259,39 +322,45 @@ void OSNSender::rand_ot_recv(osuCrypto::BitVector &choices,
 		choices.append(tmpChoices[t]);
 }
 
-OSNSender::OSNSender()
+OSNSender::OSNSender(size_t ios_threads) : ios(ios_threads)
 {
+	ios.showErrorMessages(false);
+	this->totalDataSent = 0;
+	this->totalDataRecv = 0;
 }
 
-void OSNSender::init(size_t size, std::vector<int> &dest, std::vector<uint64_t> &p, int ot_type, string Sip, size_t num_threads)
-{
-	this->size = size;
-	this->ot_type = ot_type;
-	this->dest = dest;
-	mpz_init(this->p);
-	mpz_import(this->p, p.size(), -1, sizeof(uint64_t), 0, 0, p.data());
-	print_intermediate_value(this->size, "size");
-	print_intermediate_value(this->ot_type, "ot_type");
-	print_intermediate_vector(this->dest, "dest");
-	if (allow_print_intermediate_value)
-		gmp_printf("p = %Zd\n", this->p);
+// void OSNSender::init(size_t size, std::vector<int> &dest, std::vector<uint64_t> &p, int ot_type, string Sip, string sessionHint, size_t num_threads)
+// {
+// 	this->size = size;
+// 	this->ot_type = ot_type;
+// 	this->dest = dest;
+// 	mpz_init(this->p);
+// 	mpz_import(this->p, p.size(), -1, sizeof(uint64_t), 0, 0, p.data());
+// 	print_intermediate_value(this->size, "size");
+// 	print_intermediate_value(this->ot_type, "ot_type");
+// 	print_intermediate_vector(this->dest, "dest");
+// 	if (allow_print_intermediate_value)
+// 		gmp_printf("p = %Zd\n", this->p);
 
-	this->session.start(this->ios, Sip, EpMode::Server);
+// 	if (sessionHint == "")
+// 		this->session.start(this->ios, Sip, EpMode::Server);
+// 	else
+// 		this->session.start(this->ios, Sip, EpMode::Server, sessionHint);
 
-	for (size_t i = 0; i < num_threads; i++)
-	{
-		this->chls.emplace_back(this->session.addChannel());
-	}
+// 	for (size_t i = 0; i < num_threads; i++)
+// 	{
+// 		this->chls.emplace_back(this->session.addChannel());
+// 	}
 
-	int values = size;
-	int N = int(ceil(log2(values)));
-	int levels = 2 * N - 1;
+// 	int values = size;
+// 	int N = int(ceil(log2(values)));
+// 	int levels = 2 * N - 1;
 
-	benes.initialize(values, levels, p);
+// 	benes.initialize(values, levels, p);
 
-	std::vector<int> src(values);
-	for (int i = 0; i < src.size(); ++i)
-		src[i] = i;
+// 	std::vector<int> src(values);
+// 	for (int i = 0; i < src.size(); ++i)
+// 		src[i] = i;
 
-	benes.gen_benes_route(N, 0, 0, src, dest);
-}
+// 	benes.gen_benes_route(N, 0, 0, src, dest);
+// }

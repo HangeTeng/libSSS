@@ -84,14 +84,14 @@ make -j
 ```
 
 ## Use in python
-### path.append
+### Path.append
 In the 'build' directory, you'll find an 'SSS.cpython(omitted).so' file. You can access the Python library 'SSS' by simply using 'sys.path.append' and 'import'. Here's an example of how to do it, and you can find the test code in the 'python' folder.
 
 ```python
 sys.path.append(r'../build/')
 import SSS
 ```
-### global
+### Global
 If you wish to use a Python package globally, use the 'cp' command to copy the .so file to the library directory. 
 ```shell
 # in libSSS/build dir

@@ -12,17 +12,29 @@ PYBIND11_MODULE(SSS, m)
 
     // Wrap the OSNReceiver class
     py::class_<OSNReceiver>(m, "OSNReceiver")
-        .def(py::init<>())
-        .def("init", &OSNReceiver::init,
-             py::arg("size"), py::arg("p"), py::arg("ot_type") = 1, py::arg("Sip") = "127.0.0.1:12345", py::arg("num_threads") = 1)
-        .def("run_osn", &OSNReceiver::run_osn)
+        .def(py::init<size_t>())
+        .def("run", &OSNReceiver::run_osn,
+             py::arg("size"), py::arg("p"),
+             py::arg("ot_type") = 1,
+             py::arg("Sip") = "127.0.0.1:12222",
+             py::arg("sessionHint") = "",
+             py::arg("num_threads") = 1)
+        .def("getTotalDataSent", &OSNReceiver::getTotalDataSent)
+        .def("getTotalDataRecv", &OSNReceiver::getTotalDataRecv)
         .def("setTimer", &OSNReceiver::setTimer);
 
     // Wrap the OSNSender class
     py::class_<OSNSender>(m, "OSNSender")
-        .def(py::init<>())
-        .def("init", &OSNSender::init,
-             py::arg("size"), py::arg("dest"), py::arg("p"), py::arg("ot_type") = 1, py::arg("Sip") = "127.0.0.1:12345", py::arg("num_threads") = 1)
-        .def("run_osn", &OSNSender::run_osn)
+        .def(py::init<size_t>())
+        .def("run", &OSNSender::run_osn,
+             py::arg("size"),
+             py::arg("dest"),
+             py::arg("p"),
+             py::arg("ot_type") = 1,
+             py::arg("Sip") = "127.0.0.1:12222",
+             py::arg("sessionHint") = "",
+             py::arg("num_threads") = 1)
+        .def("getTotalDataSent", &OSNSender::getTotalDataSent)
+        .def("getTotalDataRecv", &OSNSender::getTotalDataRecv)
         .def("setTimer", &OSNSender::setTimer);
 }
