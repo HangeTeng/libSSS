@@ -17,8 +17,8 @@ git clone https://github.com/osu-crypto/libOTe
 cd libOTe
 git checkout 3a40823f0507710193d5b90e6917878853a2f836
 
-git clone https://github.com/ladnir/cryptotools
-cd cryptotools
+git clone https://github.com/ladnir/cryptoTools
+cd cryptoTools
 git checkout 4a83de286d05669678364173f9fdfe45a44ddbc6
 ```
 
