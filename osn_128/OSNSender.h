@@ -41,7 +41,6 @@ class OSNSender
 					  std::vector<oc::Channel> &chls);
 	std::vector<std::array<osuCrypto::block, 2>> gen_benes_server_osn(int values,
 																	  std::vector<oc::Channel> &chls,
-																	  mpz_t p,
 																	  int ot_type = 0);
 
 	template <typename T>
@@ -51,11 +50,10 @@ class OSNSender
 
 public:
 	std::vector<int> dest;
-	OSNSender(size_t size,
-					std::vector<int> &dest,
-					std::vector<uint64_t> &p_array, size_t ios_threads = 4);
+	OSNSender(size_t ios_threads = 4);
 	// void init(size_t size, std::vector<int> &dest, std::vector<uint64_t> &p, int ot_type = 0, string Sip = "127.0.0.1:12345", string sessionHint = "", size_t num_threads = 1);
 	std::vector<std::vector<uint64_t>> run_osn(size_t size,
+											   std::vector<int> &dest,
 											   std::vector<uint64_t> &p_array,
 											   int ot_type = 0,
 											   string Sip = "127.0.0.1:12222",

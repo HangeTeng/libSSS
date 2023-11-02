@@ -46,6 +46,17 @@ void OSNReceiver::rand_ot_send(std::vector<std::array<osuCrypto::block, 2>> &sen
 		thrds[t] = std::thread(routine, t);
 	for (size_t t = 0; t < num_threads; t++)
 		thrds[t].join();
+
+	/*osuCrypto::PRNG prng1(_mm_set_epi32(4253233465, 334565, 0, 235));
+
+	std::vector<osuCrypto::block> baseRecv(128);
+	osuCrypto::DefaultBaseOT baseOTs;
+	osuCrypto::BitVector baseChoice(128);
+	baseChoice.randomize(prng1);
+	osuCrypto::IknpOtExtSender sender;
+	baseOTs.receive(baseChoice, baseRecv, prng1, chls[0], num_threads);
+	sender.setBaseOts(baseRecv, baseChoice);
+	sender.send(sendMsg, prng1, chls[0]);*/
 }
 
 void OSNReceiver::silent_ot_send(std::vector<std::array<osuCrypto::block, 2>> &sendMsg, std::vector<oc::Channel> &chls)
@@ -124,7 +135,6 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values,
 		silent_ot_send(tmp_messages, chls); // sample random ot blocks
 
 		chl.recv(bit_correction);
-		timer.setTimePoint("after ot comm");
 		osuCrypto::block tmp;
 		for (int k = 0; k < tmp_messages.size(); k++)
 		{
@@ -149,8 +159,6 @@ std::vector<std::vector<block>> OSNReceiver::gen_benes_client_osn(int values,
 		std::vector<std::array<osuCrypto::block, 2>> tmp_messages(switches);
 
 		rand_ot_send(tmp_messages, chls); // sample random ot blocks
-
-		timer.setTimePoint("after ot comm");
 
 		for (size_t i = 0; i < tmp_messages.size(); ++i)
 		{

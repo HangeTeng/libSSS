@@ -18,7 +18,6 @@ using namespace osuCrypto;
 
 std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int values,
 																			 std::vector<oc::Channel> &chls,
-																			 mpz_t p,
 																			 int ot_type)
 {
 	osuCrypto::BitVector switches = benes.return_gen_benes_switches(values);
@@ -94,6 +93,7 @@ std::vector<std::array<osuCrypto::block, 2>> OSNSender::gen_benes_server_osn(int
 }
 
 std::vector<std::vector<uint64_t>> OSNSender::run_osn(size_t size,
+													  std::vector<int> &dest,
 													  std::vector<uint64_t> &p_array,
 													  int ot_type,
 													  string Sip,
@@ -127,17 +127,17 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn(size_t size,
 	int N = int(ceil(log2(values)));
 	int levels = 2 * N - 1;
 
-	Timer timer;
-	timer.setTimePoint("start");
-	timer.setTimePoint("begin run_osn");
+	benes.initialize(values, levels, p_array);
 
-	timer.setTimePoint("after benes init");
+	std::vector<int> src(values);
+	for (int i = 0; i < src.size(); ++i)
+		src[i] = i;
+
+	benes.gen_benes_route(N, 0, 0, src, dest);
 
 	print_intermediate_value("pass", "Sender test2");
 
 	std::vector<std::array<osuCrypto::block, 2>> ot_output = gen_benes_server_osn(values, chls, p, ot_type);
-
-	timer.setTimePoint("after gen_benes_server_osn");
 
 	// cout << IoStream::lock;
 	// cout <<"ot_output:"<< ot_output[0][1]<< ot_output[0][2] <<endl; //! test 
@@ -154,7 +154,7 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn(size_t size,
 	// cout <<"input:"<<  input_vec[1]<< input_vec[2] <<endl; //! test 
 	// cout << IoStream::unlock;
 
-	timer.setTimePoint("after recv input");
+	print_intermediate_value("pass", "Sender test4");
 
 	std::vector<std::vector<std::array<osuCrypto::block, 2>>> matrix_ot_output(
 		levels, std::vector<std::array<osuCrypto::block, 2>>(values));
@@ -173,8 +173,6 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn(size_t size,
 	benes.gen_benes_masked_evaluate(N, 0, 0, input_vec, matrix_ot_output);
 	// cout <<"input:"<<  input_vec[1]<< input_vec[2] <<endl; //! test 
 
-	timer.setTimePoint("after gen_benes_masked_evaluate");
-
 	print_intermediate_value("pass", "Sender test7");
 
 	for (int i = 0; i < input_vec.size(); ++i)
@@ -188,13 +186,6 @@ std::vector<std::vector<uint64_t>> OSNSender::run_osn(size_t size,
 		this->totalDataSent += chl.getTotalDataSent();
 		this->totalDataRecv += chl.getTotalDataRecv();
 	}
-
-	timer.setTimePoint("after push_back");
-	timer.setTimePoint("after pushback");
-	// cout << IoStream::lock;
-	// cout << "Sender: run osn" << endl;
-	// cout << timer << endl;
-	// cout << IoStream::unlock;
 
 	return input_vec_ul; // share
 }
@@ -330,25 +321,11 @@ void OSNSender::rand_ot_recv(osuCrypto::BitVector &choices,
 		choices.append(tmpChoices[t]);
 }
 
-OSNSender::OSNSender( size_t size,
-					std::vector<int> &dest,
-					std::vector<uint64_t> &p_array, size_t ios_threads) : ios(ios_threads)
+OSNSender::OSNSender(size_t ios_threads) : ios(ios_threads)
 {
 	ios.showErrorMessages(false);
 	this->totalDataSent = 0;
 	this->totalDataRecv = 0;
-
-	int values = size;
-	int N = int(ceil(log2(values)));
-	int levels = 2 * N - 1;
-
-	benes.initialize(values, levels, p_array);
-
-	std::vector<int> src(values);
-	for (int i = 0; i < src.size(); ++i)
-		src[i] = i;
-
-	benes.gen_benes_route(N, 0, 0, src, dest);
 }
 
 // void OSNSender::init(size_t size, std::vector<int> &dest, std::vector<uint64_t> &p, int ot_type, string Sip, string sessionHint, size_t num_threads)

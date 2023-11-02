@@ -12,7 +12,7 @@ PYBIND11_MODULE(SSS, m)
 
     // Wrap the OSNReceiver class
     py::class_<OSNReceiver>(m, "OSNReceiver")
-        .def(py::init<size_t>())
+        .def(py::init<size_t>(), py::arg("ios_threads") = 4)
         .def("run", &OSNReceiver::run_osn,
              py::arg("size"), py::arg("p"),
              py::arg("ot_type") = 1,
@@ -25,10 +25,10 @@ PYBIND11_MODULE(SSS, m)
 
     // Wrap the OSNSender class
     py::class_<OSNSender>(m, "OSNSender")
-        .def(py::init<size_t>())
+        .def(py::init<size_t, std::vector<int>&, std::vector<uint64_t>&, size_t>(),
+             py::arg("size"), py::arg("dest"), py::arg("p"), py::arg("ios_threads") = 4)
         .def("run", &OSNSender::run_osn,
              py::arg("size"),
-             py::arg("dest"),
              py::arg("p"),
              py::arg("ot_type") = 1,
              py::arg("Sip") = "127.0.0.1:12222",

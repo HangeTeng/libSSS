@@ -44,6 +44,12 @@ add_library(osn SHARED
         osn/op.h
         )
 
+# 添加性能分析选项
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+endif()
+
 # 创建Python扩展模块
 pybind11_add_module(SSS python/libSSS_wrapper.cpp osn)
 

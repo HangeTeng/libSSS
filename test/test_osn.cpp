@@ -38,14 +38,14 @@ void sender(size_t size, string hint, size_t num_threads)
 	// 	std::swap(dest[i], dest[loc]);
 	// }
 
-	OSNSender osn;
+	OSNSender osn(size, dest, p_array);
 	// osn.init(size, dest, p_array, 1, ip, hint, num_threads);
 	Timer timer;
 	osn.setTimer(timer);
 	timer.setTimePoint("before run_osn");
 
-	sender_shares = osn.run_osn(size, dest, p_array, 1, ip, hint, num_threads);
-	sender_shares = osn.run_osn(size, dest, p_array, 1, ip, "2", num_threads);
+	sender_shares = osn.run_osn(size, p_array, 1, ip, hint, num_threads);
+	// sender_shares = osn.run_osn(size, dest, p_array, 1, ip, "2", num_threads);
 	timer.setTimePoint("after run_osn");
 	permutation = dest;
 
@@ -70,7 +70,7 @@ void receiver(size_t size, string hint, size_t num_threads)
 	timer.setTimePoint("before run_osn");
 
 	std::pair<std::vector<vector<uint64_t>>, std::vector<vector<uint64_t>>> result = osn.run_osn(size, p_array, 1, ip, hint, num_threads);
-	result = osn.run_osn(size, p_array, 1, ip, "2", num_threads);
+	// result = osn.run_osn(size, p_array, 1, ip, "2", num_threads);
 	receiver_set = result.first;
 	receiver_shares = result.second;
 	timer.setTimePoint("after run_osn");
@@ -162,9 +162,6 @@ int main(int argc, char **argv)
 	size_t size = 1 << atoi(argv[1]);
 	size_t num_threads = atoi(argv[2]);
 	cout << "size:" << size << " num_threads:" << num_threads << endl;
-
-	OSNSender senderios;
-	OSNReceiver recverios;
 
 	auto sender_thrd = thread(sender,  size, "1", num_threads);
 	auto receiver_thrd = thread(receiver,size, "1", num_threads);
